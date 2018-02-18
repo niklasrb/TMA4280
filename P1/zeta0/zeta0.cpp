@@ -44,7 +44,9 @@ int main(int argc, char** argv)
 		std::fstream f("verificationTest.txt", std::fstream::out | std::fstream::trunc);
 		verificationTest(f);
 		f.close();
-	} else 
-		std::cout << "n = " << n << "   pi ~= " << RZ(n) << std::endl;
+	} else {
+		double pi = RZ(n);
+		std::cout << "n = " << n << "   pi ~= " << pi << std::endl << "Error: " << std::abs(M_PI - pi) << std::endl;
+	}
 	return 0; 
 }
