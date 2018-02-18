@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	}
 	
 	double* recv_data = new double[n/size];
-	double sum = 0, start_time;
+	double sum = 0, start_time, data_prep_duration, scatter_duration;
 	
 	if(rank == 0)
 	{
@@ -33,7 +33,9 @@ int main(int argc, char** argv)
 		double* data = new double[n];
 		for(double i = 1; i <= n; i++)
 			data[(int)i] = 1./pow(i, 2);
+		data_prep_duration = MPI_Wtime() - start_time;
 		MPI_Scatter(data, (int)n/size, MPI_DOUBLE, recv_data, n/size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		scatter_duration = MPI_Wtime() - start_time - data_prep_duration;
 	} else {
 		MPI_Scatter(NULL, (int)n/size, MPI_DOUBLE, recv_data, (int)n/size, MPI_DOUBLE, 0,  MPI_COMM_WORLD); 
 	}
@@ -49,6 +51,7 @@ int main(int argc, char** argv)
 		double duration = MPI_Wtime() - start_time;
 		std::cout << pi << std::endl;
 		std::cout << "Time: " << duration << std::endl;
+		std::cout << "Data Prep: " << data_prep_duration << "\t Scatter: " << scatter_duration << "\t Calc and Reduce: " << duration - data_prep_duration - scatter_duration << std::endl;
 		std::cout << "Error: " << std::abs(M_PI - pi) << std::endl;
 	} else
 	{
