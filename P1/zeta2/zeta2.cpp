@@ -26,8 +26,8 @@ int main(int argc, char** argv)
 	duration = (clock() - duration)/CLOCKS_PER_SEC;
 	
 	std::cout << pi << std::endl;
-	std::cout << duration << std::endl;
-	std::cout << std::abs(M_PI - pi) << std::endl;
+	std::cout << "Time: " << duration << std::endl;
+	std::cout << "Error: " << std::abs(M_PI - pi) << std::endl;
 	
 	return 0;
 }
