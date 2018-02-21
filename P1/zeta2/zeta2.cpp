@@ -2,7 +2,7 @@
 #include <omp.h>
 #include <cmath>
 #include <cstdlib>
-#include <ctime>
+#include <chrono>
 
 
 inline double RZ(double i)
@@ -15,7 +15,8 @@ int main(int argc, char** argv)
 	int n = 3;
 	if(argc > 1) n = atoi(argv[1]);
 	
-	double pi = 0, duration = clock();
+	double pi = 0;
+	auto start = std::chrono::high_resolution_clock::now();
 	
 	
 	#pragma omp parallel for reduction(+:pi)
@@ -23,10 +24,11 @@ int main(int argc, char** argv)
 		pi += RZ((double)i);
 	}
 	pi = sqrt(6*pi);
-	duration = (clock() - duration)/CLOCKS_PER_SEC;
+	
+	auto end = std::chrono::high_resolution_clock::now();
 	
 	std::cout << pi << std::endl;
-	std::cout << "Time: " << duration << std::endl;
+	std::cout << "Time: " << std::chrono::duration<double, std::milli>(end-start).count() << " ms" << std::endl;
 	std::cout << "Error: " << std::abs(M_PI - pi) << std::endl;
 	
 	return 0;

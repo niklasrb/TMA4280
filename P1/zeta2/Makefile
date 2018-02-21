@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -Wall -g -fopenmp
+CFLAGS = -Wall -g -fopenmp --std=c++11
 LDFLAGS = -O3
 
 OBJ = zeta2.o
