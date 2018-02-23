@@ -5,6 +5,26 @@
 #include <cstdlib>
 
 
+#define MPITAG_GLOBAL_REDUCTION 100
+
+double GlobalReductionSum(const double& res, const int rank, const int size)
+{
+	double s = res, buf=0;
+	for(unsigned int d = 0; d < log2(size); d++)
+	{
+		int q =rank ^ (int)pow(2, d);
+		//std::cout << rank << " sends " << s << " to " << q << std::endl;
+		int err = MPI_Sendrecv(&s, 1, MPI_DOUBLE, q, MPITAG_GLOBAL_REDUCTION,
+					&buf, 1, MPI_DOUBLE, q, MPITAG_GLOBAL_REDUCTION,
+					MPI_COMM_WORLD, NULL);
+		if(err != MPI_SUCCESS) std::cout << rank << ": Error " <<  err << std::endl;
+		//std::cout << rank << " received " << buf << " from " << q << std::endl;
+		s += buf;
+	}
+	return s;
+}
+
+
 int main(int argc, char** argv)
 {
 	int rank, size;
@@ -47,7 +67,8 @@ int main(int argc, char** argv)
 		calc_duration = MPI_Wtime() - start_time - data_prep_duration - scatter_duration;
 	
 	double pi;
-	MPI_Allreduce(&sum, &pi, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	//MPI_Allreduce(&sum, &pi, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	pi = GlobalReductionSum(sum, rank, size);
 	pi = 4*pi;
 	
 	if(rank == 0)
