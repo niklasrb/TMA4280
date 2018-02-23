@@ -5,6 +5,10 @@
 #include <chrono>
 #include <cstdlib>
 
+inline double RZ(double i)
+{
+	return 1./pow(i, 2);
+}
 
 int main(int argc, char** argv)
 {
@@ -25,26 +29,15 @@ int main(int argc, char** argv)
 		return 0;
 	}
 	
-	double* recv_data = new double[n/size];
 	double sum = 0;
-	std::chrono::time_point<std::chrono::high_resolution_clock> start, data_prep, scatter, calc, end;
+	std::chrono::time_point<std::chrono::high_resolution_clock> start, calc, end;
 	
 	if(rank == 0)
-	{
 		start = std::chrono::high_resolution_clock::now();
-		double* data = new double[n];
-		for(double i = 1; i <= n; i++)
-			data[(int)i] = 1./pow(i, 2);
-		data_prep = std::chrono::high_resolution_clock::now();
-		MPI_Scatter(data, (int)n/size, MPI_DOUBLE, recv_data, n/size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		scatter = std::chrono::high_resolution_clock::now();
-	} else {
-		MPI_Scatter(NULL, (int)n/size, MPI_DOUBLE, recv_data, (int)n/size, MPI_DOUBLE, 0,  MPI_COMM_WORLD); 
-	}
 	
 	#pragma omp parallel for reduction(+:sum)
-	for(int i = 0; i < n/size; i++)
-		sum += recv_data[i];
+	for(int i = rank*n/size +1; i <= (rank+1)*n/size; i++)
+		sum += RZ(i);
 	
 	if(rank == 0)
 		calc = std::chrono::high_resolution_clock::now();
@@ -58,8 +51,7 @@ int main(int argc, char** argv)
 		end = std::chrono::high_resolution_clock::now();
 		std::cout << pi << std::endl;
 		std::cout << "Time: " << (std::chrono::duration<double>(end - start)).count() << " s" << std::endl;
-		std::cout << "Data Prep: " << (std::chrono::duration<double>(data_prep - start)).count() << " s" << "\t Scatter: " << (std::chrono::duration<double>(scatter - data_prep)).count() << " s" 
-											<< "\t Calc: "<< (std::chrono::duration<double>(calc - scatter)).count() << " s"
+		std::cout << "\t Calc: "<< (std::chrono::duration<double>(calc - start)).count() << " s"
 											<< "\tReduce: " << (std::chrono::duration<double>(end - calc)).count() << " s"  << std::endl;
 		std::cout << "Error: " << std::abs(M_PI - pi) << std::endl;
 	}
