@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 		pi = sqrt(6*pi);
 		double duration = MPI_Wtime() - start_time;
 		std::cout << pi << std::endl;
-		std::cout << "Calc: "<<  calc_duration	<< "\tReduce: " << duration - calc_duration  << std::endl;
+		std::cout << "Time: " << duration << "  - Calc: "<<  calc_duration	<< "\tReduce: " << duration - calc_duration  << std::endl;
 		std::cout << "Error: " << std::abs(M_PI - pi) << std::endl;
 	} else
 	{

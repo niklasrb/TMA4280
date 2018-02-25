@@ -21,6 +21,7 @@ int main(int argc, char** argv)
 	
 	if(argc > 1) n = atoi(argv[1]);
 	
+	
 	MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	
 	if(n % size != 0 || floor(log2(size)) != log2(size)) {
@@ -50,7 +51,7 @@ int main(int argc, char** argv)
 		pi = 4*pi;
 		double duration = MPI_Wtime() - start_time;
 		std::cout << pi << std::endl;
-		std::cout << "Calc: "<<  calc_duration	<< "\tReduce: " << duration - calc_duration  << std::endl;
+		std::cout << "Time: " << duration << "  - Calc: "<<  calc_duration	<< "\tReduce: " << duration - calc_duration  << std::endl;
 		std::cout << "Error: " << std::abs(M_PI - pi) << std::endl;
 	} else
 	{
