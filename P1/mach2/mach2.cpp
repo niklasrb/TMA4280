@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 	
 	auto end = std::chrono::high_resolution_clock::now();
 	
-	std::cout << pi << std::endl;
+	std::cout << " pi = " << pi << "\t n = " << n  << std::endl;
 	std::cout << "Time: " << std::chrono::duration<double, std::milli>(end - start).count() << " ms" << std::endl;
 	std::cout << "Error: " << std::abs(M_PI - pi) << std::endl;
 	
