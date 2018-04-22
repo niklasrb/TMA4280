@@ -12,7 +12,7 @@
 
 namespace tma
 {
-
+/*
 static void message(char const *fmt, ...)
 {
   va_list args;
@@ -21,7 +21,7 @@ static void message(char const *fmt, ...)
   printf("\n");
   va_end(args);
 }
-
+*/
 } /* namespace tma */
 
 #endif /* TMA_TEST_H_ */

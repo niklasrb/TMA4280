@@ -6,8 +6,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
-#include <map>
-#include <vector>
+
 
 namespace tma
 {
@@ -175,17 +174,27 @@ template <class T, uint D>
 class distributedMesh : 
 	public mesh<T, D>
 {
+protected:
+	map<uint, uint> cellOwner_, vertOwner_;
+	map<uint, vector<uint> > ghosts_;
+	uint nprocs_;
 public:
-	distributedMesh(uint ncells, uint nverts, uint nprocs) : mesh<T, D>(ncells, nverts), nprocs_(nprocs)
-	{
+	/*
+	 *  Create empty mesh and distribute cells among processes
+	 *  Since cells don't contain vertices yet, they have to be assigned to owner later
+	 *
+	distributedMesh(uint ncells, uint nverts, uint nprocs) : mesh<T, D>(ncells, nverts), nprocs_(nprocs)	
+	{	
 		int nCellsPerProcess = ceil(double(ncells)/nprocs);
 		uint r = 0, c = 0;
 		while(r < nprocs && c < ncells) {
 			cellOwner_.insert(std::make_pair(c , r));
 			if(++c % nCellsPerProcess == 0) r++;
 		}
-	}
-	
+	}*/
+	/*
+	 * Use an exisiting mesh to distribute cells and vertices among processes
+	 */
 	distributedMesh(const mesh<T, D>& m, uint nprocs) : mesh<T, D>(m), nprocs_(nprocs)
 	{
 		int nCellsPerProcess = ceil(double(this->T_.ncells())/nprocs);
@@ -197,17 +206,50 @@ public:
 		AssignVerticesOwner();
 	}
 	
+	/*
+	 * Assigns vertices to their owner according to cell ownership
+	 */
 	void AssignVerticesOwner()
 	{
+		//std::cout << "AssignVerticesOwner()" << std::endl;
+		vertOwner_.clear();
 		uint owner;
 		for(uint c = 0; c < this->T_.ncells(); c++) {
-			owner = cellOwner_.at(c);
+			owner = cellOwner_.at(c);					// owner of this cell
+			//std::cout << "cell " << c << " with owner " << owner << std::endl;
 			for(uint i = 0; i < T::num(0); i++) {
-				auto v = vertOwner_.find(this->T_(c)[i]);
-				if(v == vertOwner_.end()) 
+				auto vertex = this->T_(c)[i];
+				auto vit = vertOwner_.find(vertex);
+				if(vit == vertOwner_.end()) {				// vertex has no owner so far
+					//std::cout << "vertex " << vertex << " has no owner so far, so it will be " << owner << std::endl;
 					vertOwner_.insert(std::make_pair(this->T_(c)[i], owner));
-				else if(owner < v->second )
-					vertOwner_[v->first] = owner;
+				}
+				else if (vit->second != owner) {									// vertex has other owner
+					auto git = ghosts_.find(vertex);
+					uint ghost = owner;
+					if(owner < vit->second ) {				// this owner has lower rank 
+						vertOwner_[vertex] = owner;
+						ghost = vit->second;	
+					}
+					if(git == ghosts_.end())				// add the secondary owner to list
+						ghosts_.insert(std::make_pair(vertex, vector<uint>()));
+					ghosts_[vertex].push_back(ghost);	
+					//std::cout << "vertex " << vertex << " has other owner " << vit->second  << " so far, so " << ghost  << " will be a ghost " << std::endl; 
+				}
+			}
+		}
+		// If you own a vertex in a cell, you should be able to see the whole cell
+		for(uint c = 0; c < this->T_.ncells(); c++) {
+			for(uint i = 0; i < T::num(0); i++) {
+				auto vertex = this->T_(c)[i];		
+				for(uint j = 0; j < T::num(0); j++) {
+					if(i == j)
+						continue;
+					if(vertOwner_[vertex] == vertOwner_[this->T_(c)[j]])
+						continue;
+					if(!ghosts_[this->T_(c)[j]].contains(vertOwner_[vertex]))
+						ghosts_[this->T_(c)[j]].push_back(vertOwner_[vertex]);
+				}
 			}
 		}
 	}
@@ -217,13 +259,16 @@ public:
 		for (uint c = 0; c < ncells(); ++c)  
 		{
 			std::cout << std::setw(4) << c << " owned by " << cellOwner(c) << " :";
-			for (int v = 0; v < this->T_.nnum(); ++v)
+			for (uint v = 0; v < this->T_.nnum(); ++v)
 				std::cout << std::setw(4) << this->T_(c)[v] << (v == this->T_.nnum()-1 ? '\n' : ' ');
 		} std::cout << std::endl;
 		// G_ dump
 		for (uint v = 0; v < nverts(); ++v)
 		{
-			std::cout << std::setw(4) << v << " owned by " << vertOwner(v) << " :";
+			std::cout << std::setw(4) << v << " owned by " << vertOwner(v);
+			 if(ghosts_.find(v) != ghosts_.end())
+				std::cout <<"(shared with " << ghosts_[v] << ")";
+			std::cout << ": ";
 			for (uint x = 0; x < D; ++x)
 				std::cout << std::setw(8) << this->G_(v)[x] << (x == D-1 ? '\n' : ' ');
 		} std::cout << std::endl;
@@ -234,74 +279,12 @@ public:
 	uint nverts() const { return this->T_.nverts(); }
 	uint cellOwner(uint cell) const { return cellOwner_.at(cell); }
 	uint vertOwner(uint vertex) const { return vertOwner_.at(vertex); }
+	bool IsGhost(uint vertex) const { return ghosts_.find(vertex) != ghosts_.end(); }
+	vector<uint> secondaryOwners(uint vertex) const { auto vit = ghosts_.find(vertex); return (vit == ghosts_.end() ? vector<uint>() : vit->second ); }
+
 	
-protected:
-	std::map<uint, uint> cellOwner_, vertOwner_;
-	uint nprocs_;
 };
 
-template<typename key, typename value> 
-class map : public std::map<key, value>
-{
-public:
-	bool contains(value v) {
-		for(auto it = this->begin(); it != this->end(); ++it) {
-			if(it->second == v) 
-				return true;
-		}
-		return false;
-	}
-};
-
-template<typename Z>
-class distributedVector
-{
-protected:
-	std::vector<Z> local_, ghosts_;
-	map<uint, uint> localToGlobal_;
-	std::pair<uint, uint> range_;
-	
-public:
-	template<class T, uint D>
-	distributedVector(distributedMesh<T, D>& dM, uint rank)
-	{
-		for(uint v = 0; v < dM.nverts(); v++) {
-			if(dM.vertOwner(v) == rank) {
-				local_.push_back(0);
-				localToGlobal_[local_.size()-1] = v;
-			}
-		}
-		for(uint c = 0; c < dM.ncells(); c++) {
-			if(dM.cellOwner(c) == rank) {
-				for(uint i = 0; i < T::num(0); i++) {
-					uint v = dM.topo()(c)[i];
-					if(!localToGlobal_.contains(v)) {
-						ghosts_.push_back(0);
-						localToGlobal_[local_.size() + ghosts_.size() -1] = v;
-					}
-				}
-			}
-		}
-	}
-	
-	Z& operator[](uint i) {
-		assert(i < local_.size() + ghosts_.size());
-		if(i < local_.size()) return local_[i];
-		return ghosts_[i-local_.size()];
-	}
-	
-	
-	uint size() const { return local_.size(); }
-	uint sizeTotal() const { return local_.size() + ghosts_.size(); }
-	uint LocalToGlobalIndex(uint i) const { return localToGlobal_.at(i); }
-	uint GlobalToLocalIndex(uint i) const 
-	{
-		for(uint j = 0; j < local_.size() + ghosts_.size(); j++)
-			if(localToGlobal_.at(j) == i) return j;
-		assert(false);
-	}
-	std::pair<uint, uint> Range() const { return range_; }
-};
 
 } /* namespace tma */
 

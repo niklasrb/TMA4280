@@ -13,4 +13,7 @@
 
 #include "tma/mesh/mesh.h"
 
+#include "tma/data/matrix.h"
+#include "tma/data/vector.h"
+
 #endif /* TMA_H_ */

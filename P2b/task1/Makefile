@@ -1,6 +1,6 @@
 CXX=mpicxx
 INCDIR=../include
-CXXFLAGS=-O3 -I$(INCDIR) -std=c++11
+CXXFLAGS=-O3 -I$(INCDIR) -std=c++11 -g -Wall
 
 SRC =$(INCDIR)/tma.h
 SRC+=$(wildcard $(INCDIR)/tma/*.h)
@@ -11,8 +11,6 @@ main: main.cpp $(SRC)
 
 main.cpp: $(SRC)
 	
-run: test
-	@./test
+run: main
+	mpirun -np 4 ./main 1000
 
-clean:
-	@rm -f test
