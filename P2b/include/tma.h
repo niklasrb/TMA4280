@@ -16,4 +16,6 @@
 #include "tma/data/matrix.h"
 #include "tma/data/vector.h"
 
+#include "tma/jacobi.h"
+
 #endif /* TMA_H_ */
