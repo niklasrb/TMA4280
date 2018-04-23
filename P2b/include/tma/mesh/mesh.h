@@ -105,7 +105,7 @@ struct geometry
   geometry(const geometry& gm) : 
 	nverts_(gm.nverts_), vx_(gm.nverts_ ? new real[gm.nverts_*D]() : NULL)
 	{
-		for(uint i = 0; i < nverts_; i++)
+		for(uint i = 0; i < D*nverts_; i++)
 			vx_[i] = gm.vx_[i];
 	}
 
