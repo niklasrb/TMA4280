@@ -3,15 +3,13 @@
 
 #include "tma/test.h"
 
+#include <cstdlib>
+#include <mpi.h>
+#include <cmath>
 
-
-/*
-
-#include "tma/jacobi.h"
-
-*/
-
-
+#ifdef OPENMP
+#include <omp.h>
+#endif
 
 #include "tma/geometry.h"
 #include "tma/mesh/mesh.h"

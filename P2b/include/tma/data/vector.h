@@ -84,8 +84,8 @@ public:
 		os << "[";
 		for(uint i = 0; i < v.local_.size(); i++)
 			os << v.LocalToGlobalIndex(i) << ":" << v[v.LocalToGlobalIndex(i)] << (i < v.local_.size()-1 ? "\t" : (v.ghosts_.size() > 0 ? " ; " : "]"));
-		for(int i = 1; i <= v.ghosts_.size(); i++)
-			os << v.LocalToGlobalIndex(-i) << ":" << v[v.LocalToGlobalIndex(-i)] << (i < v.ghosts_.size()-1 ? "\t" : "]");
+		for(uint i = 1; i <= v.ghosts_.size(); i++)
+			os << v.LocalToGlobalIndex(-(int)i) << ":" << v[v.LocalToGlobalIndex(-(int)i)] << (i < v.ghosts_.size()-1 ? "\t" : "]");
 		return os;
 	}
 	

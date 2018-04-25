@@ -255,8 +255,14 @@ public:
 	{
 		assert(globalToLocalRow_.find(i) != globalToLocalRow_.end() && j < n);
 		if(IsInDiagonalBlock(i, j))
+			#ifdef OPENMP
+			#pragma omp critical
+			#endif		
 			diag_.set(globalToLocalRow_.at(i), j, v);
 		else
+			#ifdef OPENMP
+			#pragma omp critical
+			#endif		
 			offdiag_.set(globalToLocalRow_.at(i), j, v);
 	}
 	
@@ -266,6 +272,15 @@ public:
 	friend std::ostream& operator <<(std::ostream& os, const DistributedSparseMatrix& dsm) 
 	{
 		return os << dsm.diag_ + dsm.offdiag_;
+	}
+	
+	friend DistributedSparseMatrix operator +(const DistributedSparseMatrix& A, const DistributedSparseMatrix& B) 
+	{
+		assert(A.globalToLocalRow_ == B.globalToLocalRow_);
+		DistributedSparseMatrix C(A);
+		C.diag_ = A.diag_ + B.diag_;
+		C.offdiag_ = A.offdiag_ + B.offdiag_;
+		return C;
 	}
 	
 	std::pair<uint, uint> RowRange() const { return range_; }
