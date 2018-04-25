@@ -11,8 +11,8 @@ namespace tma
 template <class T>
 struct basefunctions
 {
-	static uint dim();
-	static real phi(uint i, const T& cell, const point<T::D()>& x);
+	 uint dim() const;
+	 real phi(uint i, const T& cell, const point<T::D()>& x) const;
 };
 
 
@@ -35,7 +35,7 @@ protected:
 		return point<2>({x, y});
 	}
 public:
-	real Integral(const triangle& cell, real (*f)(const point<2>&)) const
+	real Integral(const triangle& cell, const std::function<real(const point<2>&)>& f) const
 	{
 		real s = 0; point<2> p;
 	for(uint i = 0; i < 10; i++) {
@@ -76,37 +76,37 @@ affineMapping<triangle>::affineMapping(const triangle& cell) : cell(cell)
 
 // Implementation of basefunctions in 1D interval
 template<>
-static uint basefunctions<interval>::dim() { return 2; }
+uint basefunctions<interval>::dim() const { return 2; }
 
 template<>
-static real basefunctions<interval>::phi(uint i, const interval& I, const point<1>& x)
+real basefunctions<interval>::phi(uint i, const interval& I, const point<1>& x) const
 {
-	assert(i == 1 || i == 2);
-	if(i == 1)
+	assert(i < 2);
+	if(i == 0)
 		return (I.b(0)-x(0))/(I.b(0)-I.a(0));
 	return (x(0)-I.a(0))/(I.b(0)-I.a(0));
 }
 
 // Implementation of basefunctions in 2D triangle
 template<>
-static uint basefunctions<triangle>::dim() { return 3; }
+uint basefunctions<triangle>::dim()  const { return 3; }
 
 template<>
-static real basefunctions<triangle>::phi(uint i, const triangle& T, const point<2>& x)
+real basefunctions<triangle>::phi(uint i, const triangle& T, const point<2>& x) const
 {
-	assert(1<= i && i <= 3);
-	real l1, l2, d;
-	d = (T.b(1)-T.c(1))*(T.a(0) - T.c(0)) + (T.c(1) - T.b(1))*(T.a(1) - T.c(1));
-	if(i == 1 || i == 3)
-		l1 = ((T.b(1) - T.c(1))*(x(0) - T.c(0)) + (T.c(0)-T.b(0))*(x(1)-T.c(1)))/d;
-	if(i == 2 || i == 3)
-		l2 = ((T.c(1) - T.a(1))*(x(0) - T.c(0)) + (T.a(0)-T.c(0))*(x(1)-T.c(1)))/d;
-	if( i == 1)
+	assert(i < 3);
+	real l1, l2, l3, d;
+	d = (T.b(1)-T.c(1))*(T.a(0) - T.c(0)) + (T.c(0) - T.b(0))*(T.a(1) - T.c(1));
+	l1 = ((T.b(1) - T.c(1))*(x(0) - T.c(0)) + (T.c(0)-T.b(0))*(x(1)-T.c(1)))/d;
+	l2 = ((T.c(1) - T.a(1))*(x(0) - T.c(0)) + (T.a(0)-T.c(0))*(x(1)-T.c(1)))/d;
+	l3 = 1. - l1 - l2;
+	if(l1 < 0 || l1 > 1 || l2 < 0 || l2 > 1 || l3 <0 || l3 > 1)	// outside triangle
+		return 0.;
+	if( i == 0)
 		return l1;
-	if( i == 2)
+	if( i == 1)
 		return l2;
-	if(i == 3)
-		return 1.-l1-l2;
+	return l3;
 }
 
 // Numerical integration on reference cell

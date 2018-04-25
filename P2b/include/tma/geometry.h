@@ -73,7 +73,7 @@ public:
 	triangle(const point<2>& a, const point<2>& b, const point<2>& c) : a(a), b(b), c(c) { sortVertices();}
 	triangle(const vector<point<2> >& v) { a = v.at(0); b = v.at(1); c = v.at(2); sortVertices(); }
 	triangle() : a({0, 0}), b({1,0}), c({0,1}) {}
-	point<2>& operator ()(uint i) { assert(i < 3); if(i ==0) return a; if(i == 1) return b; if(i == 2) return c; } 
+	point<2>& operator ()(uint i) { assert(i < 3); if(i ==0) return a; if(i == 1) return b; return c; } 
 	point<2> operator ()(uint i) const { assert(i < 3); if(i ==0) return a; if(i == 1) return b; if(i == 2) return c; } 
 	friend std::ostream& operator <<(std::ostream& os, const triangle& T) { return os << "( " << T.a << ", " << T.b << ", " << T.c << ")"; }
 	real area() const { return (b-a).norm() * (c-a).norm() / 2.; }
@@ -89,6 +89,8 @@ public:
 	cell() { vertexIndices_.resize(N); }
 	uint& operator ()(uint i) { return vertexIndices_.at(i); }
 	uint operator ()(uint i) const { return vertexIndices_.at(i); }
+	bool contains(uint i) const { return vertexIndices_.contains(i); }
+	uint find(uint i) const { return vertexIndices_.find(i); }
 	
 	uint size() const { return N; }
 	

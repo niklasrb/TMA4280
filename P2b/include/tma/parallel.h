@@ -9,10 +9,11 @@ namespace tma
 	
 MPI_Op MPI_ERRSUM;
 #define MPI_SYNC 100
+#define MPI_COLLECT 101
 
 void ErrorSum( void *invec, void *inoutvec, int *len, MPI_Datatype *datatype)
 {
-	for(uint i = 0; i < *len; i++) 
+	for(int i = 0; i < *len; i++) 
 		((double*)inoutvec)[i] = std::sqrt(std::pow(((double*)invec)[i], 2) + std::pow(((double*)inoutvec)[i], 2));
 }
 
@@ -33,6 +34,26 @@ void Sync( const distributedMesh<T>& dM, DistributedVector& v, uint rank)
 	}
 	
 }
+
+template<class T>
+vector<real> Collect(const distributedMesh<T> dm, const DistributedVector& a, uint rank, uint root)
+{
+	vector<real> b; b.resize(dm.nverts()); real buf;
+	for(uint v = 0; v < dm.nverts(); v++) {
+		if(dm.vertOwner(v) == rank) {
+			if(rank == root)  
+				b[v] = a[v];
+			else {
+				buf = a[v];
+				MPI_Send(&buf, 1, MPI_DOUBLE, root, MPI_COLLECT, MPI_COMM_WORLD);
+			} 
+		} else if(root == rank) {
+			MPI_Recv(&b[v], 1, MPI_DOUBLE, dm.vertOwner(v), MPI_COLLECT, MPI_COMM_WORLD, NULL);
+		}
+	}
+	return b;
+}
+
 template<class T>
 DistributedVector& DistributedMatrixVectorProduct(const distributedMesh<T>& dM, const DistributedSparseMatrix& A, const DistributedVector& x, DistributedVector& res)
 {
@@ -50,37 +71,34 @@ DistributedVector& DistributedMatrixVectorProduct(const distributedMesh<T>& dM, 
 }
 
 template<class T>
-DistributedVector ConjugateGradient(const distributedMesh<T>& dm, const DistributedSparseMatrix& A, const DistributedVector& b, uint rank, real eps = 1e-5, uint maxIt = 1)
+DistributedVector ConjugateGradient(const distributedMesh<T>& dm, const DistributedSparseMatrix& A, const DistributedVector& b, uint rank, real eps = 1e-5, uint maxIt = 100)
 {
-	DistributedVector x, r, rprev, e, Ae, buf;
-	real alpha, norm, eAe; uint i = 0 ;
+	DistributedVector x(dm, rank), r(dm, rank), rprev(dm, rank), e(dm, rank), Ae(dm, rank), buf(dm, rank);
+	real alpha, beta, norm, eAe, rr; uint i = 0 ;
 	Sync(dm, x, rank); 
 	r = b - DistributedMatrixVectorProduct(dm, A, x, buf); Sync(dm, r, rank);
-	std::cout << "r = " << r << std::endl;
-	e = r; DistributedMatrixVectorProduct(dm, A, x, Ae); Sync(dm, Ae, rank);
-	std::cout << "A*e = " << Ae << std::endl;
-	eAe = e*Ae; MPI_Allreduce(&eAe, &eAe, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	alpha = r*b/eAe; MPI_Allreduce(&alpha, &alpha, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	std::cout << "alpha " << alpha << std::endl;
-	x = alpha*e; Sync(dm, x, rank);
-	std::cout << "x = " << x << std::endl;
+	//std::cout << rank << ": r = " << r << std::endl;
+	e = r; 
 	do {
-		rprev = r;
-		r = rprev - alpha*Ae;
-		Sync(dm, r, rank);
-		e = r - (1./eAe)*e*DistributedMatrixVectorProduct(dm, A, rprev, buf);
-		Sync(dm, e, rank);
-		DistributedMatrixVectorProduct(dm, A, e, Ae);
-		Sync(dm, Ae, rank);
-		eAe = e*Ae;
-		MPI_Allreduce(&eAe, &eAe, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-		alpha = e*b/eAe;
-		MPI_Allreduce(&alpha, &alpha, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-		x = x + alpha*e;
-		Sync(dm, x, rank);
-		norm = alpha*e.norm();
-		MPI_Allreduce(&norm, &norm, 1, MPI_DOUBLE, MPI_ERRSUM, MPI_COMM_WORLD);
+		DistributedMatrixVectorProduct(dm, A, e, Ae); Sync(dm, Ae, rank);
 		
+		eAe = e*Ae; MPI_Allreduce(&eAe, &eAe, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		
+		alpha = r*r/eAe; MPI_Allreduce(&alpha, &alpha, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		
+		x = x + alpha*e; Sync(dm, x, rank);
+		//std::cout << rank << ": x = " << x << std::endl;
+		
+		rprev = r;
+		r = r - alpha*Ae; Sync(dm, r, rank);
+		//std::cout << rank << ": r = " << r << std::endl;
+		
+		norm = r.norm(); MPI_Allreduce(&norm, &norm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		if(norm < eps) continue;
+		
+		rr = rprev*rprev; MPI_Allreduce(&rr, &rr, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		beta = (1/rr)*r*r; MPI_Allreduce(&beta, &beta, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		e = r + beta*e; Sync(dm, e, rank);		
 	} while( norm > eps && ++i < maxIt );
 	return x;
 }

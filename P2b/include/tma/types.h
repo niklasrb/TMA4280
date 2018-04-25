@@ -61,6 +61,15 @@ public:
 		return m;
 	}
 	
+	uint find(T v) const
+	{
+		for(uint i = 0; i < this->size(); i++) {
+			if(this->at(i) == v)
+				return (int)i;
+		}
+		return this->size();
+	}
+	
 	using std::vector<T>::vector;
 	
 	friend std::ostream& operator <<(std::ostream& os, const vector& v)
