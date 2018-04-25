@@ -175,6 +175,14 @@ public:
 		return res;
 	}
 	
+	friend SparseMatrix operator *(const real& a, const SparseMatrix& sm)
+	{
+		SparseMatrix res(sm);
+		for(uint i = 0; i < res.A.size(); i++)
+			res.A[i] *= a;
+		return res;
+	}
+	
 	friend SparseMatrix operator *(const SparseMatrix& sm1, const SparseMatrix& sm2)
 	{
 		assert(sm1.n == sm2.m);
@@ -281,6 +289,14 @@ public:
 		C.diag_ = A.diag_ + B.diag_;
 		C.offdiag_ = A.offdiag_ + B.offdiag_;
 		return C;
+	}
+	
+	friend DistributedSparseMatrix operator *(const real& a, const DistributedSparseMatrix& A)
+	{
+		DistributedSparseMatrix B(A);
+		B.diag_ = a*A.diag_;
+		B.offdiag_ = a*A.offdiag_;
+		return B;
 	}
 	
 	std::pair<uint, uint> RowRange() const { return range_; }

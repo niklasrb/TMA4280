@@ -6,7 +6,7 @@
 using namespace tma;
 
 
-
+mesh<interval, 1> CreateIntervalMesh(real a, real b, int N) ;
 
 int main(int argc, char**argv)
 {
@@ -22,16 +22,8 @@ int main(int argc, char**argv)
 	
 	uint N = 30;
 	if(argc > 1) N = std::atoi(argv[1]); 
-	
-	mesh<interval, 1> m(N, N+1);
-	for(uint i = 0; i < N; i++ ) {
-		m.topo()(i)[0] = i;
-		m.topo()(i)[1] = i+1;
-	}
-	for(uint i = 0; i < N+1; i++)
-		m.geom()(i)[0] = double(i)/N;
 
-	distributedMesh<interval, 1> dm(m, size);
+	distributedMesh<interval, 1> dm(CreateIntervalMesh(0., 1., N) , size);
 	if(rank == 0) dm.dump();
 	
 	
@@ -98,6 +90,18 @@ int main(int argc, char**argv)
 	
 	MPI_Finalize();
 	return 0;
+}
+
+mesh<interval, 1> CreateIntervalMesh(real a, real b, int N) 
+{
+	mesh<interval, 1> m(N, N+1);
+	for(uint i = 0; i < N; i++ ) {
+		m.topo()(i)[0] = i;
+		m.topo()(i)[1] = i+1;
+	}
+	for(uint i = 0; i < N+1; i++)
+		m.geom()(i)[0] = a + (b-a)*double(i)/N;
+	return m;
 }
 
 
