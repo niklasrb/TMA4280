@@ -3,19 +3,24 @@
 
 #include "tma/test.h"
 
-#include "tma/mapping.h"
-#include "tma/quadrature.h"
 
-#include "tma/cell/interval.h"
-#include "tma/cell/triangle.h"
 
-#include "tma/elements/lagrange.h"
+/*
 
+#include "tma/jacobi.h"
+
+*/
+
+
+
+#include "tma/geometry.h"
 #include "tma/mesh/mesh.h"
 
 #include "tma/data/matrix.h"
 #include "tma/data/vector.h"
 
-#include "tma/jacobi.h"
+#include "tma/quadrature.h"
+#include "tma/helmholtz.h"
+#include "tma/parallel.h"
 
 #endif /* TMA_H_ */
