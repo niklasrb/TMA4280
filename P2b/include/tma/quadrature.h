@@ -16,7 +16,7 @@ struct basefunctions
 };
 
 
-// reference cell integration
+// reference cell integration in 2D
 
 class TWBQuadrature
 {
@@ -45,34 +45,6 @@ public:
 	}
 };
 
-// affine Mapping
-/*
-template<class T>
-struct affineMapping
-{
-	const T cell;
-	std::function<point<T::D()>, const point<T::D()>& p> T_k;
-	std::function<QuadraticMatrix<T::D()>, const point<T::D()>& > Jacobian; 
-	affineMapping(const T& cell);
-};
-
-// affine Mapping Implementation 1D
-template<>
-affineMapping<interval>::affineMapping(const interval& c) : cell(c)
-{
-	Jacobian = [&cell] (const point<1>& p) { QuadraticMatrix<1> m; m(0,0) = (p - cell.a); return m; }
-	T_k = [&cell] (const point<1>& p) { return cell.a + p(0)*(cell.b-cell.a) };
-}
-
-// affine Mapping Implementation 2D
-template<>
-affineMapping<triangle>::affineMapping(const triangle& cell) : cell(cell)
-{
-	// find right angle point
-	
-	
-}
-*/
 
 // Implementation of basefunctions in 1D interval
 template<>
@@ -108,11 +80,6 @@ real basefunctions<triangle>::phi(uint i, const triangle& T, const point<2>& x) 
 		return l2;
 	return l3;
 }
-
-// Numerical integration on reference cell
-
-
-// 
 
 } /* namespace tma */
 

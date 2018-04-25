@@ -39,7 +39,7 @@ int main(int argc, char**argv)
 	DistributedSparseMatrix K(dm, dm.nverts(), rank), M(dm, dm.nverts(), rank), A(dm, dm.nverts(), rank);
 	DistributedVector F(dm, rank);
 	
-	Assemble(dm, f, rank, K, M, F);
+	AssembleHelmholtz(dm, f, rank, K, M, F);
 	A = K + M;
 	Sync(dm, F, rank);
 	if(rank == 0) {

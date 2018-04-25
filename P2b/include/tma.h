@@ -19,6 +19,7 @@
 
 #include "tma/quadrature.h"
 #include "tma/helmholtz.h"
+#include "tma/uheat.h"
 #include "tma/parallel.h"
 
 #endif /* TMA_H_ */
