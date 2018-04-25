@@ -20,8 +20,8 @@ protected:
 	}
 	
 public:
-	template<class T, uint D>
-	DistributedVector(const distributedMesh<T, D>& dM, uint rank)	// use mesh to initiate vector
+	template<class T>
+	DistributedVector(const distributedMesh<T>& dM, uint rank)	// use mesh to initiate vector
 	{
 		for(uint v = 0; v < dM.nverts(); v++) {		// find owned vertices
 			if(dM.vertOwner(v) == rank) {
@@ -102,6 +102,19 @@ public:
 		return u;
 	}
 	
+	friend DistributedVector operator -(const DistributedVector& v, const DistributedVector& w)
+	{
+		assert(v.local_.size() == w.local_.size());
+		assert(v.ghosts_.size() == w.ghosts_.size());
+		assert(v.globalToLocal_ == w.globalToLocal_);
+		DistributedVector u(v);
+		for(uint i = 0; i < w.local_.size(); i++)
+			u.local_[i] -= w.local_[i];
+		for(uint i = 0; i < w.ghosts_.size(); i++)
+			u.ghosts_[i] -= w.ghosts_[i];
+		return u;
+	}
+	
 	friend DistributedVector operator -(const DistributedVector& v)
 	{
 		DistributedVector u(v);
@@ -111,6 +124,28 @@ public:
 			u.ghosts_[i] *= -1;
 		return u;
 	}
+	
+	friend DistributedVector operator *(const real& a, const DistributedVector& v)
+	{
+		DistributedVector u(v);
+		for(uint i = 0; i < u.local_.size(); i++)
+			u.local_[i] *= a;
+		for(uint i = 0; i < u.ghosts_.size(); i++)
+			u.ghosts_[i] *= a;
+		return u;
+	}
+	
+	friend real operator *(const DistributedVector& v, const DistributedVector& w)
+	{
+		real s = 0;
+		assert(v.local_.size() == w.local_.size());
+		assert(v.ghosts_.size() == w.ghosts_.size());
+		assert(v.globalToLocal_ == w.globalToLocal_);
+		for(uint i = 0; i < v.local_.size(); i++)
+			s += v.local_[i]*w.local_[i];
+		return s;
+	}
+	
 	
 	real norm() const 
 	{ 

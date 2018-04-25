@@ -6,7 +6,67 @@
 
 namespace tma
 {
+
+template<uint N>
+struct QuadraticMatrix
+{
+protected:
+	vector<real> m_;
+public:	
+	QuadraticMatrix()	{ m_.resize(N*N);	}
 	
+	real& operator ()(uint i, uint j) { return m_.at(N*j + i); }
+	real operator ()(uint i, uint j) const { return m_.at(N*j + i); }
+	friend QuadraticMatrix operator +(const QuadraticMatrix& m1, const QuadraticMatrix& m2) { QuadraticMatrix m(m1); for(uint i = 0; i < N; i++) for(uint j = 0; j < N; j++) m(i,j) += m2(i, j); return m; }
+	friend QuadraticMatrix operator -(const QuadraticMatrix& m1, const QuadraticMatrix& m2) { QuadraticMatrix m(m1); for(uint i = 0; i < N; i++) for(uint j = 0; j < N; j++) m(i,j) -= m2(i, j); return m; }
+	friend QuadraticMatrix operator *(const real& a, const QuadraticMatrix& m1) { QuadraticMatrix m(m1); for(uint i = 0; i < N; i++) for(uint j = 0; j < N; j++) m(i,j) *= a; return m; }
+	friend QuadraticMatrix operator *(const QuadraticMatrix& m1, const QuadraticMatrix& m2) 
+	{ 
+		QuadraticMatrix m; real s ;
+		for(uint i = 0; i < N; i++) {
+			for(uint j = 0; j < N; j++) {
+				s = 0;
+				for(uint k = 0; k < N; k++)
+					s += m1(i, k)*m2(k, j);
+				m(i, j) = s;
+			}
+		}
+		return m; 
+	}
+	friend std::ostream& operator <<(std::ostream& os, const QuadraticMatrix& m)
+	{
+		os << "[";
+		for(uint i = 0; i < N; i++) {
+			os << "[";
+			for(uint j = 0; j < N; j++)
+				os << m(i, j) << (j < N-1 ? ", " : (i < N -1 ? "], " : "] ]"));
+		}
+		return os;
+	}
+	
+	
+	real determinant() const;
+	//QuadraticMatrix Inverse() const;
+};
+
+template<>
+real QuadraticMatrix<1>::determinant() const { return (*this)(0, 0); }
+template<>
+real QuadraticMatrix<2>::determinant() const { return (*this)(0, 0)*(*this)(1, 1) - (*this)(1,0)*(*this)(0, 1); }
+/*
+template<>
+QuadraticMatrix<1> QuadraticMatrix<1>::Inverse() { QuadraticMatrix<1> m(); m(0, 0) = 1./this->determinant(); }
+template<>
+QuadraticMatrix<2> QuadraticMatrix<2>::Inverse() 
+{  
+	real det = this->determinant(); assert(det != 0); 
+	QuadraticMatrix<2> m(); 
+	m(0, 0) = (*this)(1,1)/det; m(1, 0) = -(*this)(1,0)/det; 
+	m(0, 1) = -(*this)(0, 1)/det; m(1, 1) = (*this)(0, 0)/det;
+	return m;
+}
+*/
+
 class SparseMatrix
 {
 protected:
@@ -141,8 +201,8 @@ protected:
 	uint m, n;
 
 public:
-	template<class T, uint D>
-	DistributedSparseMatrix(const distributedMesh<T, D>& dM, uint n, uint rank) : n(n)
+	template<class T>
+	DistributedSparseMatrix(const distributedMesh<T>& dM, uint n, uint rank) : n(n)
 	{
 		uint r = 0;
 		for(uint v = 0; v < dM.nverts(); v++) {

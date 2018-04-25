@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <vector>
 #include <map>
+#include <iostream>
 
 namespace tma
 {
@@ -49,6 +50,18 @@ public:
 		}
 		return false;
 	}
+	
+	uint maxIndex() const
+	{
+		uint m = 0;
+		for(uint i = 1; i < this->size(); i++) {
+			if(this->at(i) > this->at(m))
+				m = i;
+		}
+		return m;
+	}
+	
+	using std::vector<T>::vector;
 	
 	friend std::ostream& operator <<(std::ostream& os, const vector& v)
 	{

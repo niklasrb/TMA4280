@@ -6,30 +6,30 @@
 namespace tma
 {
 
-template<uint N>
+template<class T>
 struct Jacobian
 {
   /// Jacobian
-  real J[N][N];
+  real J[T::D()][T::D()];
 
   /// Inverse
-  real K[N][N];
+  real K[T::D()][T::D()];
 
   /// Determinant
   real det;
 
   ///
-  void operator()(real const * const * x);
+  void operator()(const T& I);
 
 };
 
 //--- IMPLEMENTATION 1D -------------------------------------------------------
 
 template<>
-inline void Jacobian<1>::operator()(real const * const * x)
+ void Jacobian<interval>::operator()(const interval& I)
 {
   // Compute Jacobian
-  J[0][0] = x[1][0] - x[0][0];
+  J[0][0] = I.b(0) - I.a(0);
 
   // Compute determinant
   det = J[0][0];
@@ -41,10 +41,10 @@ inline void Jacobian<1>::operator()(real const * const * x)
 //--- IMPLEMENTATION 2D -------------------------------------------------------
 
 template<>
-inline void Jacobian<2>::operator()(real const * const * x)
+ void Jacobian<triangle>::operator()(const point<2> x)
 {
   // Compute Jacobian
-  J[0][0] = x[1][0] - x[0][0];
+  J[0][0] = x1(0) - x0(0;
   J[1][0] = x[1][1] - x[0][1];
   J[0][1] = x[2][0] - x[0][0];
   J[1][1] = x[2][1] - x[0][1];
