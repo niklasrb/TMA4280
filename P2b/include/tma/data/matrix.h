@@ -139,6 +139,7 @@ public:
 					res.set(i, j, d);
 			}
 		}
+		return res;
 	}
 };
 
@@ -207,7 +208,6 @@ public:
 		if(IsInDiagonalBlock(i, j))	
 			diag_.set(globalToLocalRow_.at(i), j, v);
 		else
-				
 			offdiag_.set(globalToLocalRow_.at(i), j, v);
 	}
 	

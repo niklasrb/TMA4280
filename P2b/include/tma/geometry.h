@@ -46,8 +46,8 @@ struct interval
 	interval(const point<1>& a, const point<1>& b) : a(a), b(b) { }
 	interval(const vector<point<1> >& v) { a = v.at(0); b = v.at(1); }
 	interval() : a({0}), b({1}) {}
-	point<1>& operator ()(uint i) { assert(i < 2); if(i == 0) return a; if(i == 1) return b; }
-	point<1> operator ()(uint i) const { assert(i < 2); if(i == 0) return a; if(i == 1) return b; }
+	point<1>& operator ()(uint i) { assert(i < 2); if(i == 0) return a; return b; }
+	point<1> operator ()(uint i) const { assert(i < 2); if(i == 0) return a;  return b; }
 	friend std::ostream& operator <<(std::ostream& os, const interval& I) { return os << "(" << I.a << ", " << I.b << ")"; }
 	real area() const { return std::abs(b(0) - a(0)); }
 };
