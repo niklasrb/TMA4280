@@ -1,71 +1,10 @@
 #ifndef TMA_MATRIX_H
 #define TMA_MATRIX_H
 
-#include <cmath>
-#include <algorithm>
+
 
 namespace tma
 {
-
-template<uint N>
-struct QuadraticMatrix
-{
-protected:
-	vector<real> m_;
-public:	
-	QuadraticMatrix()	{ m_.resize(N*N);	}
-	
-	real& operator ()(uint i, uint j) { return m_.at(N*j + i); }
-	real operator ()(uint i, uint j) const { return m_.at(N*j + i); }
-	friend QuadraticMatrix operator +(const QuadraticMatrix& m1, const QuadraticMatrix& m2) { QuadraticMatrix m(m1); for(uint i = 0; i < N; i++) for(uint j = 0; j < N; j++) m(i,j) += m2(i, j); return m; }
-	friend QuadraticMatrix operator -(const QuadraticMatrix& m1, const QuadraticMatrix& m2) { QuadraticMatrix m(m1); for(uint i = 0; i < N; i++) for(uint j = 0; j < N; j++) m(i,j) -= m2(i, j); return m; }
-	friend QuadraticMatrix operator *(const real& a, const QuadraticMatrix& m1) { QuadraticMatrix m(m1); for(uint i = 0; i < N; i++) for(uint j = 0; j < N; j++) m(i,j) *= a; return m; }
-	friend QuadraticMatrix operator *(const QuadraticMatrix& m1, const QuadraticMatrix& m2) 
-	{ 
-		QuadraticMatrix m; real s ;
-		for(uint i = 0; i < N; i++) {
-			for(uint j = 0; j < N; j++) {
-				s = 0;
-				for(uint k = 0; k < N; k++)
-					s += m1(i, k)*m2(k, j);
-				m(i, j) = s;
-			}
-		}
-		return m; 
-	}
-	friend std::ostream& operator <<(std::ostream& os, const QuadraticMatrix& m)
-	{
-		os << "[";
-		for(uint i = 0; i < N; i++) {
-			os << "[";
-			for(uint j = 0; j < N; j++)
-				os << m(i, j) << (j < N-1 ? ", " : (i < N -1 ? "], " : "] ]"));
-		}
-		return os;
-	}
-	
-	
-	real determinant() const;
-	//QuadraticMatrix Inverse() const;
-};
-
-template<>
-real QuadraticMatrix<1>::determinant() const { return (*this)(0, 0); }
-template<>
-real QuadraticMatrix<2>::determinant() const { return (*this)(0, 0)*(*this)(1, 1) - (*this)(1,0)*(*this)(0, 1); }
-/*
-template<>
-QuadraticMatrix<1> QuadraticMatrix<1>::Inverse() { QuadraticMatrix<1> m(); m(0, 0) = 1./this->determinant(); }
-template<>
-QuadraticMatrix<2> QuadraticMatrix<2>::Inverse() 
-{  
-	real det = this->determinant(); assert(det != 0); 
-	QuadraticMatrix<2> m(); 
-	m(0, 0) = (*this)(1,1)/det; m(1, 0) = -(*this)(1,0)/det; 
-	m(0, 1) = -(*this)(0, 1)/det; m(1, 1) = (*this)(0, 0)/det;
-	return m;
-}
-*/
 
 class SparseMatrix
 {
@@ -97,15 +36,10 @@ public:
 	}
 	
 	SparseMatrix() : m(0), n(0)
-	{
-		
-	}
+	{	}
 	
 	friend std::ostream& operator <<(std::ostream& os,const SparseMatrix& sm)
 	{
-		//os << "A: ("; for(unsigned int i = 0; i < sm.A.size(); i++) os << sm.A[i] << (i < sm.A.size()-1 ? ", " : "");  os << ")" << std::endl;
-		//os << "IA: ("; for(unsigned int i = 0; i < sm.IA.size(); i++) os << sm.IA[i] << (i < sm.IA.size()-1 ? ", " : ""); os << ")" << std::endl;
-		//os << "JA: ("; for(unsigned int i = 0; i < sm.JA.size(); i++) os << sm.JA[i] << (i < sm.JA.size()-1 ? ", " : ""); os << ")" << std::endl;
 		os << "[ ";
 		for(uint i = 0; i < sm.m; i++) {
 			os << "[ ";
@@ -119,28 +53,36 @@ public:
 	void set(uint i, uint j, const double& v)
 	{
 		assert(0 <= i && i < m && 0 <= j && j < n);
-		if((*this)(i, j) != 0) {	// element exists, find it
-			int c = IA.at(i);
-			while(JA.at(c) != j) c++;
-			if(v == 0) {	// delete it
-				A.erase(A.begin()+c);
-				JA.erase(JA.begin()+c);
-				nnz--;
-				for(uint k = i+1; k < m+1; k++) IA.at(k)--;
+		#ifdef OPENMP
+		#pragma omp critical
+		#endif	
+		{
+			if((*this)(i, j) != 0) {	// element exists, find it
+				int c = IA.at(i);
+				while(JA.at(c) != j) c++;
+				if(v == 0) {	// delete it
+					A.erase(A.begin()+c);
+					JA.erase(JA.begin()+c);
+					nnz--;
+					for(uint k = i+1; k < m+1; k++) 
+						IA.at(k)--;
+				}
+				else {			//change it
+					A[c] = v;
+				}
 			}
-			else {			//change it
-				A[c] = v;
+			else {		// element does not exist
+				if(v != 0) { // if v == 0no need to do anything
+				// create it
+				uint c = IA.at(i);
+				while(c < JA.size() && c < IA.at(i+1) && JA.at(c) < j) c++;
+				A.insert(A.begin() + c , v);
+				JA.insert(JA.begin()+ c , j);
+				nnz++;
+				for(uint k = i+1; k < m+1; k++) 
+					IA.at(k)++;
+				}
 			}
-		}
-		else {		// element does not exist
-			if(v == 0) return; // no need to do anything
-			// create it
-			uint c = IA.at(i);
-			while(c < JA.size() && c < IA.at(i+1) && JA.at(c) < j) c++;
-			A.insert(A.begin() + c , v);
-			JA.insert(JA.begin()+ c , j);
-			nnz++;
-			for(uint k = i+1; k < m+1; k++) IA.at(k)++;
 		}
 	}
 	
@@ -149,7 +91,7 @@ public:
 		assert(0 <= i && i < m && 0 <= j && j < n);
 		for(uint c = IA.at(i); c < IA.at(i+1); c++)
 			if(JA.at(c) == j) return A[c];
-		return 0;
+		return 0.;
 	}
 	
 	friend SparseMatrix operator +(const SparseMatrix& sm1, const SparseMatrix& sm2)
@@ -262,20 +204,13 @@ public:
 	void set(uint i, uint j, real v)
 	{
 		assert(globalToLocalRow_.find(i) != globalToLocalRow_.end() && j < n);
-		if(IsInDiagonalBlock(i, j))
-			#ifdef OPENMP
-			#pragma omp critical
-			#endif		
+		if(IsInDiagonalBlock(i, j))	
 			diag_.set(globalToLocalRow_.at(i), j, v);
 		else
-			#ifdef OPENMP
-			#pragma omp critical
-			#endif		
+				
 			offdiag_.set(globalToLocalRow_.at(i), j, v);
 	}
 	
-	void set(std::pair<uint, uint> index, real v) { set(index.first, index.second, v); }
-	real operator()(std::pair<uint, uint> index) const { return (*this)(index.first, index.second); }
 	
 	friend std::ostream& operator <<(std::ostream& os, const DistributedSparseMatrix& dsm) 
 	{

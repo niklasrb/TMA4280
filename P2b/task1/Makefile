@@ -12,5 +12,5 @@ main: main.cpp $(SRC)
 main.cpp: $(SRC)
 	
 run: main
-	mpirun -np 4 ./main 100
+	mpirun -np 3 ./main 
 

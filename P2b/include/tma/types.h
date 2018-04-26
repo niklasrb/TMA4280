@@ -1,13 +1,6 @@
 #ifndef TMA_TYPES_H_
 #define TMA_TYPES_H_
 
-#include <climits>
-#include <cfloat>
-#include <stdint.h>
-#include <vector>
-#include <map>
-#include <iostream>
-
 namespace tma
 {
 

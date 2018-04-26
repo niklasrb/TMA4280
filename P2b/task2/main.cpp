@@ -4,7 +4,6 @@
  * 23.4.18
  */
 
-
 #include "../include/tma.h"
 
 using namespace tma;
@@ -22,16 +21,16 @@ int main(int argc, char**argv)
 	
 	MPI_Op_create( &tma::ErrorSum, true, &MPI_ERRSUM);
 	
-	uint k = 3, N;
-	if(argc > 1) k = std::atoi(argv[1]); 
-	N = pow(2, k);
+	uint N = 5, maxSteps = 1000;
+	if(argc > 1) N = std::atoi(argv[1]); 
+	if(argc > 2) maxSteps = std::atoi(argv[2]);
 	
 	// Create Mesh
 	auto mesh = CreateRectangularMesh(0, 0, 1, 1, N);
 	
 	distributedMesh<triangle> dm(mesh, size);
-	if(rank == 0)
-		dm.dump();
+	//if(rank == 0)
+	//	dm.dump();
 	
 	// Linearize Problem
 	auto f = [] (const point<2>& x) { return (1.+2*M_PI*M_PI)*std::cos(M_PI*x(0))*std::sin(M_PI*x(1)); };
@@ -39,33 +38,64 @@ int main(int argc, char**argv)
 	DistributedSparseMatrix K(dm, dm.nverts(), rank), M(dm, dm.nverts(), rank), A(dm, dm.nverts(), rank);
 	DistributedVector F(dm, rank);
 	
+	MPI_Barrier(MPI_COMM_WORLD);
+	auto startassembly = std::chrono::steady_clock::now();
 	AssembleHelmholtz(dm, f, rank, K, M, F);
+	MPI_Barrier(MPI_COMM_WORLD);
+	auto endassembly = std::chrono::steady_clock::now();
+	
 	A = K + M;
 	Sync(dm, F, rank);
-	if(rank == 0) {
+	/*if(rank == 0) {
 		std::cout << "K = " << K << std::endl;
 		std::cout << "M = " << M << std::endl;
 		std::cout << "F = " << F << std::endl;
 		std::cout << "A = " << A << std::endl;
+	}*/
+	
+	// Test linear system on analytic solution
+	auto u_theoretical = [] (const point<2>& x) { return std::cos(M_PI*x(0))*std::sin(M_PI*x(1)); };
+	DistributedVector u_expanded(dm, rank), Au(dm, rank);
+	ExpandFunction(dm, u_theoretical, rank, u_expanded);	Sync(dm, u_expanded, rank);
+	
+	DistributedMatrixVectorProduct(dm, A, u_expanded, Au);
+	
+	ExpandFunction(dm, f, rank, F);	Sync(dm, F, rank);
+	
+	real norm = (Au - F).norm(); MPI_Allreduce(&norm, &norm, 1, MPI_DOUBLE, MPI_ERRSUM, MPI_COMM_WORLD);
+	
+	if(rank == 0) {
+		std::cout << "Helmholtz Equation" << std::endl;
+		std::cout << "N = " << N << " ncells() = " << dm.ncells() << std::endl;
+		#ifdef OPENMP
+		std::cout << "omp is used with " << omp_get_max_threads() << " threads" << std::endl;
+		#else
+		std::cout << "omp is not used" << std::endl;
+		#endif
+		std::cout << "Assembly took " << std::chrono::duration <double, std::milli> (endassembly - startassembly).count() << "ms" << std::endl;
+		std::cout << "||Au_theoretical - F||_2 = " << norm << std::endl;
 	}
+		
 	
-	// Solve
-	DistributedVector u = ConjugateGradient(dm, A, F, rank, 1e-6, 10000);
-	DistributedVector Au(dm, rank);
-	std::cout << "u = " << u << std::endl;
+	// Solve linear system
+	MPI_Barrier(MPI_COMM_WORLD);
+	auto startcg = std::chrono::steady_clock::now();
+	DistributedVector u = ConjugateGradient(dm, A, F, rank, 1e-6, maxSteps);
+	MPI_Barrier(MPI_COMM_WORLD);
+	auto endcg = std::chrono::steady_clock::now();
+	
 	DistributedMatrixVectorProduct(dm, A, u, Au);
-	real norm = (Au + (-F)).norm(); MPI_Allreduce(&norm, &norm, 1, MPI_DOUBLE, MPI_ERRSUM, MPI_COMM_WORLD);
+	norm = (Au - F).norm(); MPI_Allreduce(&norm, &norm, 1, MPI_DOUBLE, MPI_ERRSUM, MPI_COMM_WORLD);
 	
-	if(rank == 0)
-		std::cout << "||Au - F|| = " << norm << std::endl;
-	
+	if(rank == 0) {
+		std::cout << "Conjugate Gradient took " << std::chrono::duration <double, std::milli> (endcg - startcg).count() << "ms" << std::endl;
+		std::cout << "||Au_solution - F||_2 = " << norm << std::endl;
+	}
 	vector<real> u_coll = Collect(dm, u, rank, 0);
 	
-	
-	// Compare
+	// Compare solution to linear system to 
 	if(rank == 0) {
-		std::cout << "u_num = " << u_coll << std::endl;
-		auto u_theoretical = [] (const point<2>& x) { return std::cos(M_PI*x(0))*std::sin(M_PI*x(1)); };
+		//std::cout << "u_num = " << u_coll << std::endl;
 		auto u_num = [&u_coll, &dm] (const point<2>& x) 
 		{
 			triangle T; real s = 0;basefunctions<triangle> bf;
@@ -78,13 +108,14 @@ int main(int argc, char**argv)
 			return s;
 		};
 		auto L2integrand = [&u_theoretical, &u_num] (const point<2>& x) { return pow(u_theoretical(x) - u_num(x), 2); };
-		real norm = 0;
+		norm = 0;
 		TWBQuadrature quad; 
 		for(uint c = 0; c < dm.ncells(); c++) {
 			norm += quad.Integral(dm.physicalCell(c), L2integrand);
 		}
 		norm = std::sqrt(norm);
-		std::cout << "||u_theo(x) - u_num(x)||_2 = " << norm << std::endl;
+		std::cout << "Using u_solution to construct a function" << std::endl;
+		std::cout << "||u_theo(x) - u_solution(x)||_2 = " << norm << std::endl;
 	}
 	
 	MPI_Finalize();

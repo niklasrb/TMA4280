@@ -1,11 +1,23 @@
 #ifndef TMA_H_
 #define TMA_H_
 
-#include "tma/test.h"
-
 #include <cstdlib>
 #include <mpi.h>
 #include <cmath>
+#include <chrono>
+#include <algorithm>
+#include <climits>
+#include <cfloat>
+#include <stdint.h>
+#include <vector>
+#include <map>
+#include <iostream>
+#include <cassert>
+#include <iomanip>
+#include <initializer_list>
+#include <functional>
+
+#define OPENMP
 
 #ifdef OPENMP
 #include <omp.h>

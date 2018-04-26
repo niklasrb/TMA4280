@@ -2,7 +2,7 @@
 #define TMA_QUADRATURE_H_
 
 #include <tma/types.h>
-#include <functional>
+
 
 
 namespace tma
@@ -47,7 +47,11 @@ public:
 
 
 // reference cell integration in 1D
-
+class GaussianQuadrature
+{
+	
+	
+};
 
 
 // Implementation of basefunctions in 1D interval

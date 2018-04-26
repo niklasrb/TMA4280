@@ -2,7 +2,7 @@
 #define TMA_PARALLEL_H
 
 #include <tma/types.h>
-#include <mpi.h>
+
 
 namespace tma
 {
@@ -58,8 +58,10 @@ template<class T>
 DistributedVector& DistributedMatrixVectorProduct(const distributedMesh<T>& dM, const DistributedSparseMatrix& A, const DistributedVector& x, DistributedVector& res)
 {
 	real s;
+	#ifdef OPENMP
+	#pragma omp parallel for private(s) 
+	#endif
 	for(uint i = A.RowRange().first; i < A.RowRange().second; i++) {
-		//if(dM.vertOwner(i) != rank) continue;
 		s = 0;
 		for(uint j = 0; j < A.col(); j++) {
 			if(A(i, j) != 0)

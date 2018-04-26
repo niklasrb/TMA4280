@@ -1,13 +1,7 @@
 #ifndef TMA_GEOMETRY_H
 #define TMA_GEOMETRY_H
 
-#include "types.h"
-#include <cmath>
-#include <iostream>
-#include <cassert>
-#include <iomanip>
-#include <initializer_list>
-		
+#include "types.h"		
 
 
 namespace tma

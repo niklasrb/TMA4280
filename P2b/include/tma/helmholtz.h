@@ -4,6 +4,26 @@
 namespace tma
 {
 
+void ExpandFunction(const distributedMesh<triangle>& dm, const std::function<real(const point<2>&)>& f, uint rank, DistributedVector& f_expanded)
+{
+	triangle T;
+	basefunctions<triangle> bf;
+	TWBQuadrature quad;
+	
+	for(uint v = 0; v < dm.nverts(); v++) {		// go through all vertices
+		if(dm.vertOwner(v) != rank) continue;
+		f_expanded[v] = 0.;
+		for(uint c = 0; c < dm.ncells(); c++) {	// find cells the vertex belongs to
+			if(dm.topo()(c).contains(v)) {
+				T = dm.physicalCell(c);
+				uint i = dm.topo()(c).find(v);
+				f_expanded[v] += quad.Integral(T, [&bf, &f, i, &T] (const point<2>& x) { return f(x)*bf.phi(i, T, x);  });
+			}
+		}	
+	}
+} 
+
+
 void AssembleHelmholtz(const distributedMesh<triangle>& dm, real (*f)(const point<2>&), uint rank, DistributedSparseMatrix& StiffnessMatrix, DistributedSparseMatrix& MassMatrix, DistributedVector& ForceVector)
 {
 	triangle T; real Tsize;
@@ -18,6 +38,7 @@ void AssembleHelmholtz(const distributedMesh<triangle>& dm, real (*f)(const poin
 		if(dm.vertOwner(v) != rank) continue;
 		if(dm.geom()(v)(1) == 0. || dm.geom()(v)(1) == 1.) {	// boundary conditions
 			StiffnessMatrix.set(v, v, 1.);
+			ForceVector[v] = 0;
 			continue;
 		}
 		for(uint c = 0; c < dm.ncells(); c++) {	// find cells the vertex belongs to

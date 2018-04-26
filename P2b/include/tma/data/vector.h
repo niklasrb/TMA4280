@@ -29,12 +29,12 @@ public:
 				globalToLocal_[v] = local_.size()-1;
 			} else if(dM.IsGhost(v)) {				// and ghosts for this instance
 				if(dM.secondaryOwners(v).contains(rank)) {
-					ghosts_.push_back(v);
-					globalToLocal_[v] = -(ghosts_.size()-1)-1;
-				}
+					ghosts_.push_back(0);
+					globalToLocal_[v] = -(ghosts_.size()-1)-1;	// to differentiate between local and ghost vertices, change sign in globalToLocal_ mapping
+				}												//  (since size() isn't known at this point, otherwise that'd be a better way)
 			}
 		}
-		bool range = true;
+		bool range = true;	// check if "range" even makes sense
 		for(uint i = 0; i < local_.size()-1; i++) {
 			if(LocalToGlobalIndex(i)+1 != LocalToGlobalIndex(i+1))
 				range = false;
@@ -79,16 +79,17 @@ public:
 	// shows the global range of this distributed vector, if exists
 	std::pair<uint, uint> Range() const { return range_; }
 	
+	// syntactic sugar
 	friend std::ostream& operator <<(std::ostream& os, const DistributedVector& v)
 	{
 		os << "[";
 		for(uint i = 0; i < v.local_.size(); i++)
 			os << v.LocalToGlobalIndex(i) << ":" << v[v.LocalToGlobalIndex(i)] << (i < v.local_.size()-1 ? "\t" : (v.ghosts_.size() > 0 ? " ; " : "]"));
 		for(uint i = 1; i <= v.ghosts_.size(); i++)
-			os << v.LocalToGlobalIndex(-(int)i) << ":" << v[v.LocalToGlobalIndex(-(int)i)] << (i < v.ghosts_.size()-1 ? "\t" : "]");
+			os << v.LocalToGlobalIndex(-(int)i) << ":" << v[v.LocalToGlobalIndex(-(int)i)] << (i < v.ghosts_.size() ? "\t" : "]");
 		return os;
 	}
-	
+	// make more DistributedVectors
 	friend DistributedVector operator +(const DistributedVector& v, const DistributedVector& w)
 	{
 		assert(v.local_.size() == w.local_.size());
@@ -146,7 +147,7 @@ public:
 		return s;
 	}
 	
-	
+	// the norm of the local elements
 	real norm() const 
 	{ 
 		real s = 0; 

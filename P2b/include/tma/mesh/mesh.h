@@ -1,12 +1,6 @@
 #ifndef TMA_MESH_H_
 #define TMA_MESH_H_
 
-#include <tma/types.h>
-
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-
 
 namespace tma
 {
@@ -72,7 +66,7 @@ public:
 	uint nverts() const { return geom_.nverts(); }
 	uint ncells() const { return topo_.ncells(); }
 	
-	mesh(uint ncells, uint nverts) : geom_(nverts), topo_(ncells) { std::cout << ncells << " - " << nverts << std::endl;}
+	mesh(uint ncells, uint nverts) : geom_(nverts), topo_(ncells) {}
 	
 	geometry<T::D()>& geom() { return geom_; }
 	geometry<T::D()> geom() const { return geom_; }
@@ -173,15 +167,15 @@ public:
 	}
 	
 	void dump() const
-	{	// T_ dump
+	{	std::cout << "topology: " << std::endl;
 		for (uint c = 0; c < this->ncells(); ++c)  
 		{
-			std::cout << std::setw(4) << c << " owned by " << cellOwner(c) << " :" << this->topo()(c) << std::endl;
+			std::cout <<  std::setw(4) << "cell " << c << " owned by " << cellOwner(c) << " :" << this->topo()(c) << std::endl;
 		} 
-		// G_ dump
+		std::cout << "geometry: " << std::endl;
 		for (uint v = 0; v < this->nverts(); ++v)
 		{
-			std::cout << std::setw(4) << v << " owned by " << vertOwner(v);
+			std::cout << std::setw(4) << "vertex " << v << " owned by " << vertOwner(v);
 			 if(ghosts_.find(v) != ghosts_.end())
 				std::cout <<"(shared with " << ghosts_.at(v) << ")";
 			std::cout << ": " << this->geom()(v) << std::endl;
