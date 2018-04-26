@@ -67,6 +67,7 @@ int main(int argc, char**argv)
 	if(rank == 0) {
 		std::cout << "Helmholtz Equation" << std::endl;
 		std::cout << "N = " << N << " ncells() = " << dm.ncells() << std::endl;
+		std::cout << "size = " << size << std::endl;
 		#ifdef OPENMP
 		std::cout << "omp is used with " << omp_get_max_threads() << " threads" << std::endl;
 		#else

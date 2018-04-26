@@ -13,5 +13,5 @@ main: main.cpp $(SRC)
 main.cpp: $(SRC)
 	
 run: main
-	OMP_NUM_THREADS=4 mpirun -np 4 ./main 20
+	OMP_NUM_THREADS=4 mpirun -np 4 ./main 15
 

@@ -22,7 +22,7 @@ int main(int argc, char**argv)
 	
 	MPI_Op_create( &tma::ErrorSum, true, &MPI_ERRSUM);
 	
-	uint  N = 5, steps = 10;
+	uint  N = 5, steps = 1;
 	if(argc > 1) N = std::atoi(argv[1]); 
 	if(argc > 2) steps = std::atoi(argv[2]); 
 	
@@ -55,6 +55,7 @@ int main(int argc, char**argv)
 	if(rank == 0) {
 		std::cout << "Unsteady Heat Equation" << std::endl;
 		std::cout << "N = " << N << " ncells() = " << dm.ncells() << std::endl;
+		std::cout << "size = " << size << std::endl;
 		#ifdef OPENMP
 		std::cout << "omp is used with " << omp_get_max_threads() << " threads" << std::endl;
 		#else

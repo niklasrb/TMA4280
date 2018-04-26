@@ -38,10 +38,9 @@ public:
 	real Integral(const triangle& cell, const std::function<real(const point<2>&)>& f) const
 	{
 		real s = 0; point<2> p;
-	for(uint i = 0; i < 10; i++) {
-		s+= f(x_q(cell, i))*weight[i]; 
-	}
-	return s*cell.area() / 2.;
+		for(uint i = 0; i < 10; i++) 
+			s+= f(x_q(cell, i))*weight[i]; 
+		return s*cell.area() / 2.;
 	}
 };
 
@@ -49,7 +48,19 @@ public:
 // reference cell integration in 1D
 class GaussianQuadrature
 {
+constexpr static uint  n = 5;
+	real x[n] = {0., 0.538469, -0.538469, 0.90618, -0.90618};
+	real weight[n] = {0.568889,  0.478629, 0.478629,  0.236927, 0.236927};
 	
+public:
+	real Integral(const interval& cell, const std::function<real(const point<1>&)>& f) const
+	{
+		real s = 0; point<1> p;
+		for(uint i = 0; i < n; i++)
+			s += weight[i] * f( (cell.b(0)-cell.a(0))/2. * x[i] + (cell.a(0)+cell.b(0))/2.);
+		
+		return s*cell.area()/2.;
+	}
 	
 };
 
