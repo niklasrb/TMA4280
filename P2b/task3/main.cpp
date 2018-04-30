@@ -22,7 +22,7 @@ int main(int argc, char**argv)
 	
 	MPI_Op_create( &tma::ErrorSum, true, &MPI_ERRSUM);
 	
-	uint  N = 5, steps = 1;
+	uint  N = 5, steps = 100;
 	if(argc > 1) N = std::atoi(argv[1]); 
 	if(argc > 2) steps = std::atoi(argv[2]); 
 	
