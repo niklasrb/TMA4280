@@ -22,7 +22,7 @@ int main(int argc, char**argv)
 	
 	MPI_Op_create( &tma::ErrorSum, true, &MPI_ERRSUM);
 	
-	uint  N = 5, steps = 100;
+	uint  N = 5, steps = 20;
 	if(argc > 1) N = std::atoi(argv[1]); 
 	if(argc > 2) steps = std::atoi(argv[2]); 
 	
@@ -35,7 +35,7 @@ int main(int argc, char**argv)
 	
 	// Linearize Problem
 	real nu = 1.;
-	real h = 0.01;
+	real h = 0.05;
 	auto u_tilde = [nu] (const point<2>& x, const real& t) { return exp(-nu*nu*t) * sin(sqrt(nu)*x(0) + sqrt(nu)*x(1)); };
 	
 	DistributedSparseMatrix K(dm, dm.nverts(), rank), M(dm, dm.nverts(), rank), S(dm, dm.nverts(), rank);
