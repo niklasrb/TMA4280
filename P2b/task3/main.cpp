@@ -36,6 +36,7 @@ int main(int argc, char**argv)
 	// Linearize Problem
 	real nu = 1.;
 	real h = 0.05;
+	real t = h*steps;
 	auto u_tilde = [nu] (const point<2>& x, const real& t) { return exp(-nu*nu*t) * sin(sqrt(nu)*x(0) + sqrt(nu)*x(1)); };
 	
 	DistributedSparseMatrix K(dm, dm.nverts(), rank), M(dm, dm.nverts(), rank), S(dm, dm.nverts(), rank);
@@ -77,7 +78,15 @@ int main(int argc, char**argv)
 	
 	
 	// Compare
+	DistributedVector u_tilde_exp(dm, rank);
+	ExpandFunction(dm, [&t, &u_tilde](const point<2>& x){ return u_tilde(x, t); }, rank, u_tilde_exp); Sync(dm, u_tilde_exp, rank);
+	real norm = 0;
+	norm = (u - u_tilde_exp).norm(); MPI_Allreduce(&norm, &norm, 1, MPI_DOUBLE, MPI_ERRSUM, MPI_COMM_WORLD);
+	
 	if(rank == 0) {
+		std::cout << "solving took " << std::chrono::duration <double, std::milli> (endbe - startbe).count() << "ms for " << steps << " steps" << std::endl;
+		std::cout << "after t = " << t << " the 2-norm of the expanded vector difference ||u_num_exp - u_tilde_exp||_2 = " << norm << std::endl;
+		
 		//std::cout << "u_num = " << u_coll << std::endl;
 		auto u_num = [&u_coll, &dm] (const point<2>& x) 
 		{
@@ -90,16 +99,16 @@ int main(int argc, char**argv)
 			}
 			return s;
 		};
-		real t = h*steps;
+		
 		auto L2integrand = [&u_tilde, &u_num, &t] (const point<2>& x) { return pow(u_tilde(x, t) - u_num(x), 2); };
-		real norm = 0;
-		TWBQuadrature quad; 
+		
+		TWBQuadrature quad; norm = 0; 
 		for(uint c = 0; c < dm.ncells(); c++) {
 			norm += quad.Integral(dm.physicalCell(c), L2integrand);
 		}
 		norm = std::sqrt(norm);
-		std::cout << "solving took " << std::chrono::duration <double, std::milli> (endbe - startbe).count() << "ms for " << steps << " steps" << std::endl;
-		std::cout << "after t = " << t << " the constructed function has ||u_num(x) - u_tilde(x)||_2 = " << norm << std::endl;
+		
+		std::cout << "The constructed function has ||u_num(x) - u_tilde(x)||_2 = " << norm << std::endl;
 	}
 	
 	MPI_Finalize();

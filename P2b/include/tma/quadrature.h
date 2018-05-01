@@ -73,6 +73,8 @@ template<>
 real basefunctions<interval>::phi(uint i, const interval& I, const point<1>& x) const
 {
 	assert(i < 2);
+	if(x(0) < I.a(0) || x(0) > I.b(0))
+		return 0.;
 	if(i == 0)
 		return (I.b(0)-x(0))/(I.b(0)-I.a(0));
 	return (x(0)-I.a(0))/(I.b(0)-I.a(0));
