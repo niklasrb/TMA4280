@@ -23,8 +23,10 @@ int main(int argc, char**argv)
 	if(argc > 1) N = std::atoi(argv[1]); 
 
 	distributedMesh<interval> dm(CreateIntervalMesh(0., 1., N) , size);
-	if(rank == 0) dm.dump();
-	
+	//if(rank == 0) 
+	//	dm.dump();
+	if(rank == 0)
+		std::cout << "N = " << N << " size = " << size << std::endl;
 	
 	
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -39,18 +41,18 @@ int main(int argc, char**argv)
 	
 	Sync(dm, f_exp, rank);
 	
-	if(rank == 0) {
+	/*if(rank == 0) {
 		std::cout << "L = " << L << std::endl;
 		std::cout << "M = " << M << std::endl;
 		std::cout << "f = " << f_exp << std::endl;
-	}
+	}*/
 	// Test
 	auto u = [](const point<1>& x) { return std::sin(M_PI*x(0))/M_PI/M_PI; };
 	ExpandFunction(dm, u, rank, u_exp);
 	Sync(dm, u_exp, rank);
 	
-	if(rank == 0)
-		std::cout << "u = " << u_exp << std::endl;
+	//if(rank == 0)
+	//	std::cout << "u = " << u_exp << std::endl;
 	
 	DistributedMatrixVectorProduct(dm, M+L, u_exp, res);
 	if(rank == 0)
@@ -88,7 +90,7 @@ void AssembleHelmholtz(const distributedMesh<interval>& dm, real (*f)(const poin
 				uint i = dm.topo()(c).find(v);
 				for(uint j = 0; j < 2; j++) {	// find other vertices in cell
 					globJ = dm.topo()(c)(j);
-					StiffnessMatrix.set(v, globJ, StiffnessMatrix(v, globJ) + pow(-1., i)*pow(-1., j)/Isize  );
+					StiffnessMatrix.set(v, globJ, StiffnessMatrix(v, globJ) + pow(-1., i)*pow(-1., j)/Isize/1.  );
 					MassMatrix.set(v, globJ, MassMatrix(v, globJ) + quad.Integral(I, [&bf, i, j, &I] (const point<1>& x) { return bf.phi(i, I, x)*bf.phi(j, I, x); }));
 				}
 				ForceVector[v] += quad.Integral(I, [&bf, &f, i, &I] (const point<1>& x) { return f(x)*bf.phi(i, I, x);  });

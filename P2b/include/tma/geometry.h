@@ -68,7 +68,7 @@ public:
 	triangle(const vector<point<2> >& v) { a = v.at(0); b = v.at(1); c = v.at(2); sortVertices(); }
 	triangle() : a({0, 0}), b({1,0}), c({0,1}) {}
 	point<2>& operator ()(uint i) { assert(i < 3); if(i ==0) return a; if(i == 1) return b; return c; } 
-	point<2> operator ()(uint i) const { assert(i < 3); if(i ==0) return a; if(i == 1) return b; if(i == 2) return c; } 
+	point<2> operator ()(uint i) const { assert(i < 3); if(i ==0) return a; if(i == 1) return b; return c; } 
 	friend std::ostream& operator <<(std::ostream& os, const triangle& T) { return os << "( " << T.a << ", " << T.b << ", " << T.c << ")"; }
 	real area() const { return (b-a).norm() * (c-a).norm() / 2.; }
 };
