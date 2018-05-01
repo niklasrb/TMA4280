@@ -26,10 +26,7 @@ void AssembleUnsteadyHeatProblem(const distributedMesh<triangle>& dm, uint rank,
 	#endif
 	for(uint v = 0; v < dm.nverts(); v++) {		// go through all vertices
 		if(dm.vertOwner(v) != rank) continue;
-		//if(dm.geom()(v)(1) == 0. || dm.geom()(v)(1) == 1.) {	// boundary conditions
-		//	StiffnessMatrix.set(v, v, 1.);
-		//	continue;
-		//}
+		edge = IsOnBoundary(dm.geom()(v));
 		for(uint c = 0; c < dm.ncells(); c++) {	// find cells the vertex belongs to
 			if(dm.topo()(c).contains(v)) {
 				T = dm.physicalCell(c);
@@ -42,7 +39,7 @@ void AssembleUnsteadyHeatProblem(const distributedMesh<triangle>& dm, uint rank,
 					MassMatrix.set(v, globJ, MassMatrix(v, globJ) + quad.Integral(T, [&bf, i, j, &T] (const point<2>& x) { return bf.phi(i, T, x)*bf.phi(j, T, x); }));
 					
 					if(edge && globJ != v) {
-						if (dm.geom()(globJ)(0) == 0. || dm.geom()(globJ)(0) == 1. || dm.geom()(globJ)(1) == 0. || dm.geom()(globJ)(1) == 1.)
+						if (IsOnBoundary(dm.geom()(globJ)))
 						{
 							mm = 0;
 							for(uint k = 0; k < 3; k++) 

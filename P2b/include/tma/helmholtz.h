@@ -10,6 +10,9 @@ void ExpandFunction(const distributedMesh<triangle>& dm, const std::function<rea
 	basefunctions<triangle> bf;
 	TWBQuadrature quad;
 	
+	#ifdef OPENMP
+	#pragma omp parallel for private(T, bf, quad) schedule(guided)
+	#endif
 	for(uint v = 0; v < dm.nverts(); v++) {		// go through all vertices
 		if(dm.vertOwner(v) != rank) continue;
 		f_expanded[v] = 0.;
