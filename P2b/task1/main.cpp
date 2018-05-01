@@ -3,7 +3,7 @@
 
 using namespace tma;
 
-void AssembleHelmholtz(const distributedMesh<interval>& dm, real (*f)(const point<1>&), uint rank, DistributedSparseMatrix& StiffnessMatrix, DistributedSparseMatrix& MassMatrix, DistributedVector& ForceVector);
+void AssemblePoisson(const distributedMesh<interval>& dm, real (*f)(const point<1>&), uint rank, DistributedSparseMatrix& StiffnessMatrix, DistributedVector& ForceVector);
 void ExpandFunction(const distributedMesh<interval>& dm, const std::function<real(const point<1>&)>& f, uint rank, DistributedVector& f_expanded);
 mesh<interval> CreateIntervalMesh(real a, real b, uint N) ;
 
@@ -33,11 +33,11 @@ int main(int argc, char**argv)
 	
 	// 1D Poisson Problem
 	DistributedVector u_exp(dm, rank), f_exp(dm, rank), res(dm, rank);
-	DistributedSparseMatrix L(dm, dm.nverts(), rank), M(dm, dm.nverts(), rank);
+	DistributedSparseMatrix L(dm, dm.nverts(), rank);
 	auto f = [](const point<1>& x) { return std::sin(M_PI*x(0)); };
 	
 	// Assemble
-	AssembleHelmholtz(dm, f, rank, L, M, f_exp);
+	AssemblePoisson(dm, f, rank, L, f_exp);
 	
 	Sync(dm, f_exp, rank);
 	
@@ -54,19 +54,19 @@ int main(int argc, char**argv)
 	//if(rank == 0)
 	//	std::cout << "u = " << u_exp << std::endl;
 	
-	DistributedMatrixVectorProduct(dm, M+L, u_exp, res);
+	DistributedMatrixVectorProduct(dm, L, u_exp, res);
 	if(rank == 0)
 		std::cout << res << std::endl;
 
 	real norm = (res - u_exp).norm(); MPI_Allreduce(&norm, &norm, 1, MPI_DOUBLE, MPI_ERRSUM, MPI_COMM_WORLD);
 	if(rank == 0)
-		std::cout << "||(M+L)u - f||_2 = " << norm << std::endl;
+		std::cout << "||Lu - f||_2 = " << norm << std::endl;
 	
 	MPI_Finalize();
 	return 0;
 }
 
-void AssembleHelmholtz(const distributedMesh<interval>& dm, real (*f)(const point<1>&), uint rank, DistributedSparseMatrix& StiffnessMatrix, DistributedSparseMatrix& MassMatrix, DistributedVector& ForceVector)
+void AssemblePoisson(const distributedMesh<interval>& dm, real (*f)(const point<1>&), uint rank, DistributedSparseMatrix& StiffnessMatrix, DistributedVector& ForceVector)
 {
 	interval I; real Isize;
 	uint globJ;
@@ -91,7 +91,6 @@ void AssembleHelmholtz(const distributedMesh<interval>& dm, real (*f)(const poin
 				for(uint j = 0; j < 2; j++) {	// find other vertices in cell
 					globJ = dm.topo()(c)(j);
 					StiffnessMatrix.set(v, globJ, StiffnessMatrix(v, globJ) + pow(-1., i)*pow(-1., j)/Isize/1.  );
-					MassMatrix.set(v, globJ, MassMatrix(v, globJ) + quad.Integral(I, [&bf, i, j, &I] (const point<1>& x) { return bf.phi(i, I, x)*bf.phi(j, I, x); }));
 				}
 				ForceVector[v] += quad.Integral(I, [&bf, &f, i, &I] (const point<1>& x) { return f(x)*bf.phi(i, I, x);  });
 			}
